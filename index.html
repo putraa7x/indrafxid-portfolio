@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IndraFXid | Performance Trading</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay">
+  <div class="loader-logo">IndraFXid</div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+  <div class="loader-text">Loading live data…</div>
+</div>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-wrap">
+      <div class="logo">IndraFXid</div>
+      <div class="logo-sub">Professional Trading Portfolio · 2026</div>
+    </div>
+    <div class="header-right">
+      <nav class="top-nav">
+        <a href="#performance">Performance</a>
+        <a href="#open-trades">Open Trades</a>
+        <a href="#trades">History</a>
+        <a href="#deposits">Deposits</a>
+      </nav>
+      <div class="badge">Live Account</div>
+    </div>
+  </header>
+
+  <!-- Error Banner -->
+  <div id="error-banner">⚠ Could not load live data. Showing cached or placeholder values. <button class="refresh-btn" onclick="loadData()">Retry</button></div>
+
+  <!-- Hero -->
+  <section class="hero reveal">
+    <div class="hero-eyebrow"><span></span>Professional Trading Journal<span></span></div>
+    <h1>Trading<br><em>Excellence.</em></h1>
+    <p class="hero-desc">Professional trading performance journal by IndraFXid — specializing in intraday and swing trading strategies, with disciplined risk management and consistent execution.</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hs-label">Balance</div>
+        <div class="hs-value" id="hero-balance">—</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hs-label">Return YTD</div>
+        <div class="hs-value" id="hero-gain">—</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hs-label">Trades</div>
+        <div class="hs-value" id="hero-trades">—</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="gold-line"></div>
+
+  <!-- KPI Grid -->
+  <div id="performance" class="kpi-grid reveal">
+    <div class="kpi">
+      <div class="kpi-label">Net Balance</div>
+      <div class="kpi-value" id="kpi-balance">—</div>
+      <div class="kpi-sub" id="kpi-balance-sub">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total Gain</div>
+      <div class="kpi-value green" id="kpi-gain">—</div>
+      <div class="kpi-sub" id="kpi-gain-sub">Since deposit</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Win Rate</div>
+      <div class="kpi-value gold" id="kpi-winrate">—</div>
+      <div class="kpi-sub" id="kpi-winrate-sub">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Max Drawdown</div>
+      <div class="kpi-value" id="kpi-drawdown">—</div>
+      <div class="kpi-sub">Controlled risk</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Profit Factor</div>
+      <div class="kpi-value gold" id="kpi-pf">—</div>
+      <div class="kpi-sub">Above breakeven</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Daily Gain</div>
+      <div class="kpi-value" id="kpi-daily">—</div>
+      <div class="kpi-sub" id="kpi-monthly">Monthly: —</div>
+    </div>
+  </div>
+
+  <!-- Equity Curve -->
+  <section class="section reveal">
+    <div class="sec-head">
+      <h2>Equity Curve</h2>
+      <span class="sec-tag" id="equity-tag">Live Data</span>
+    </div>
+    <div class="chartbox">
+      <canvas id="equityChart" height="90"></canvas>
+    </div>
+  </section>
+
+  <!-- Monthly Heatmap -->
+  <section class="section reveal">
+    <div class="sec-head">
+      <h2>Monthly Returns</h2>
+      <span class="sec-tag">2026</span>
+    </div>
+    <div class="heat-grid" id="monthly-grid">
+      <!-- Filled by JS -->
+    </div>
+  </section>
+
+  <!-- Open Trades -->
+  <section id="open-trades" class="section reveal">
+    <div class="sec-head">
+      <h2>Open Trades</h2>
+      <span class="sec-tag" id="open-trades-tag">Live</span>
+    </div>
+    <div class="open-trades-grid" id="open-trades-grid">
+      <!-- Filled by JS -->
+    </div>
+  </section>
+
+  <!-- Trading Profile -->
+  <section class="section reveal">
+    <div class="sec-head">
+      <h2>Trading Profile</h2>
+      <span class="sec-tag">EUR/USD Focus</span>
+    </div>
+    <div class="spotlight">
+      <div class="spot-item">
+        <div class="spot-label">Primary Instrument</div>
+        <div class="spot-value gold">EUR / USD</div>
+      </div>
+      <span class="spot-sep"></span>
+      <div class="spot-divider"></div>
+      <div class="spot-item">
+        <div class="spot-label">Trading Style</div>
+        <div class="spot-value">Intraday &amp; Swing Trading</div>
+      </div>
+      <span class="spot-sep"></span>
+      <div class="spot-divider"></div>
+      <div class="spot-item">
+        <div class="spot-label">Holding Period</div>
+        <div class="spot-value">1 – 7 Days</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Deposits & Withdrawals -->
+  <section id="deposits" class="section reveal">
+    <div class="sec-head">
+      <h2>Deposits &amp; Withdrawals</h2>
+      <span class="sec-tag">Account Activity</span>
+    </div>
+    <div class="dw-summary">
+      <div class="kpi">
+        <div class="kpi-label">Total Deposits</div>
+        <div class="kpi-value gold" id="dw-deposits">—</div>
+        <div class="kpi-sub">Initial Capital</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Withdrawals</div>
+        <div class="kpi-value" id="dw-withdrawals">—</div>
+        <div class="kpi-sub">Realized Profit</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Net Profit</div>
+        <div class="kpi-value green" id="dw-netprofit">—</div>
+        <div class="kpi-sub">After Withdrawals</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Current Equity</div>
+        <div class="kpi-value gold" id="dw-equity">—</div>
+        <div class="kpi-sub">Live Account Value</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Trades -->
+  <section id="trades" class="section reveal">
+    <div class="sec-head">
+      <h2>Recent Trades</h2>
+      <span class="sec-tag">Latest Activity</span>
+    </div>
+    <div class="trade-table-wrap">
+      <!-- Mobile cards -->
+      <div class="trade-cards" id="trade-cards-mobile"></div>
+      <!-- Desktop table -->
+      <table class="trade-table-desktop">
+        <thead><tr>
+          <th>Date</th><th>Pair</th><th>Direction</th><th>Lots</th><th>Pips</th><th>Result</th>
+        </tr></thead>
+        <tbody id="trade-table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Last Updated -->
+  <div class="last-updated">
+    Last updated: <span id="last-updated-time">—</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo">IndraFXid</div>
+    <div class="footer-copy">© 2026 · IndraFXid Trading Portfolio · Live via Myfxbook</div>
+  </footer>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
