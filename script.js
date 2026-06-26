@@ -1,55 +1,99 @@
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const API_URL = 'https://myfxbook-api.YOUR_SUBDOMAIN.workers.dev/';
-const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
+const API_URL = 'https://indrafxidportfoliof690.indranovita572.workers.dev/';
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 // ── Chart instance ────────────────────────────────────────────────────────────
 let equityChart = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-const fmt = (n, decimals = 2) => parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-const fmtUSD = n => '$' + fmt(n, 2);
+
+const fmt = (n, decimals = 2) =>
+  parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+// Selalu tanpa desimal, tanpa tanda
+const fmtAbs = n => '$' + Math.round(Math.abs(parseFloat(n))).toLocaleString('en-US');
+
+// Dengan tanda +/- di depan $
+const fmtUSD = n => {
+  const num = parseFloat(n);
+  if (num < 0) return '-' + fmtAbs(num);
+  return fmtAbs(num);
+};
+
+// Dengan tanda + untuk positif
+const fmtUSDSigned = n => {
+  const num = parseFloat(n);
+  if (num > 0) return '+' + fmtAbs(num);
+  if (num < 0) return '-' + fmtAbs(num);
+  return fmtAbs(num);
+};
+
 const fmtPct = n => (parseFloat(n) >= 0 ? '+' : '') + fmt(n, 2) + '%';
 
 function formatDate(str) {
   if (!str) return '—';
-  const d = new Date(str);
+  let d;
+  if (str.includes('/')) {
+    const [datePart] = str.split(' ');
+    const [mm, dd, yyyy] = datePart.split('/');
+    d = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+  } else {
+    d = new Date(str);
+  }
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function getDuration(open, close) {
   if (!open || !close) return '—';
-  const diff = new Date(close) - new Date(open);
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return 'Intraday';
-  return days + (days === 1 ? ' day' : ' days');
+  const parseD = s => {
+    const [datePart] = s.split(' ');
+    const [mm, dd, yyyy] = datePart.split('/');
+    return new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+  };
+  const days = Math.floor((parseD(close) - parseD(open)) / 86400000);
+  if (days === 0) return '1D';
+  return days + 'D';
 }
 
 // ── Render functions ──────────────────────────────────────────────────────────
 function renderKPIs(a) {
-  $('hero-balance').textContent = fmtUSD(a.balance);
-  $('hero-gain').textContent    = fmtPct(a.gain);
-  $('hero-trades').textContent  = a.trades;
+  $('hero-balance').textContent  = fmtUSD(a.balance);
+  $('hero-gain').textContent     = fmtPct(a.gain);
+  $('hero-drawdown').textContent = a.drawdown + '%';
+
+  const isDemo = a.demo;
+  $('badge-dot').className     = 'badge-dot' + (isDemo ? ' demo' : '');
+  $('badge-label').textContent = isDemo ? 'Demo Account' : 'Live Account';
 
   $('kpi-balance').textContent     = fmtUSD(a.balance);
-  $('kpi-balance-sub').textContent = '↑ from ' + fmtUSD(a.deposits);
-  $('kpi-gain').textContent        = fmtPct(a.gain);
-  $('kpi-gain-sub').textContent    = 'Abs: ' + fmtUSD(a.absGain);
-  $('kpi-winrate').textContent     = a.winRate + '%';
-  $('kpi-winrate-sub').textContent = a.wonTrades + ' of ' + a.trades + ' wins';
-  $('kpi-drawdown').textContent    = a.maxDrawdown + '%';
-  $('kpi-pf').textContent          = a.profitFactor;
+  $('kpi-balance-sub').textContent = 'from ' + fmtUSD(a.deposits);
+
+  const gain = parseFloat(a.gain);
+  $('kpi-gain').textContent     = fmtPct(gain);
+  $('kpi-gain').className       = 'kpi-value ' + (gain >= 0 ? 'green' : 'red');
+  $('kpi-gain-sub').textContent = 'Abs: ' + fmtUSDSigned(a.profit);
+
+  $('kpi-winrate').textContent     = (a.winRate ?? '—') + '%';
+  $('kpi-winrate-sub').textContent = 'From ' + (a.trades ?? 0) + ' trades';
+
+  $('kpi-drawdown').textContent = a.drawdown + '%';
+  $('kpi-pf').textContent       = a.profitFactor;
 
   const daily = parseFloat(a.dailyGain);
-  $('kpi-daily').textContent     = fmtPct(daily);
-  $('kpi-daily').className       = 'kpi-value ' + (daily >= 0 ? 'green' : 'red');
-  $('kpi-monthly').textContent   = 'Monthly: ' + fmtPct(a.monthlyGain);
+  $('kpi-daily').textContent   = fmtPct(daily);
+  $('kpi-daily').className     = 'kpi-value ' + (daily >= 0 ? 'green' : 'red');
+  $('kpi-monthly').textContent = 'Monthly: ' + fmtPct(a.monthlyGain);
 
   $('dw-deposits').textContent    = fmtUSD(a.deposits);
   $('dw-withdrawals').textContent = fmtUSD(a.withdrawals);
-  $('dw-netprofit').textContent   = fmtUSD(parseFloat(a.balance) - parseFloat(a.deposits) + parseFloat(a.withdrawals));
-  $('dw-equity').textContent      = fmtUSD(a.equity);
+
+  const profit = parseFloat(a.profit);
+  $('dw-netprofit').textContent = fmtUSDSigned(profit);
+  $('dw-netprofit').className   = 'kpi-value ' + (profit >= 0 ? 'green' : 'red');
+
+  $('dw-equity').textContent = fmtUSD(a.equity);
 }
 
 function renderEquityChart(curve) {
@@ -84,12 +128,12 @@ function renderEquityChart(curve) {
           titleColor: '#8A9BB0', bodyColor: '#F5F0E8',
           bodyFont: { family: 'Manrope', size: 13, weight: '500' },
           padding: 14,
-          callbacks: { label: c => ' $' + c.raw.toLocaleString() }
+          callbacks: { label: c => ' ' + fmtUSD(c.raw) }
         }
       },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5A6B7E', font: { family: 'Manrope', size: 11 } } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5A6B7E', font: { family: 'Manrope', size: 11 }, callback: v => '$' + (v/1000).toFixed(1) + 'k' } }
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5A6B7E', font: { family: 'Manrope', size: 11 }, callback: v => fmtUSD(v) } }
       }
     }
   });
@@ -104,11 +148,10 @@ function renderMonthly(monthly) {
     const val = hasData ? parseFloat(m.gain) : null;
     const tile = document.createElement('div');
     tile.className = 'month-tile' + (hasData ? (val >= 0 ? ' positive' : ' negative') : '');
-    tile.innerHTML = `
-      <div class="month-name">${m.name}</div>
-      <div class="month-pct ${hasData ? (val >= 0 ? 'pos' : 'neg') : 'na'}">
-        ${hasData ? fmtPct(val) : '—'}
-      </div>`;
+    tile.innerHTML =
+      '<div class="month-name">' + m.name + '</div>' +
+      '<div class="month-pct ' + (hasData ? (val >= 0 ? 'pos' : 'neg') : 'na') + '">' +
+      (hasData ? fmtPct(val) : '—') + '</div>';
     grid.appendChild(tile);
   });
 }
@@ -123,61 +166,145 @@ function renderOpenTrades(openTrades) {
   grid.innerHTML = '';
   openTrades.forEach(t => {
     const profit = parseFloat(t.profit);
+    const isBuy = String(t.type).toLowerCase() === 'buy' || t.type === '0';
     const card = document.createElement('div');
     card.className = 'open-trade-card';
-    card.innerHTML = `
-      <div class="otc-top">
-        <span class="otc-pair">${t.pair}</span>
-        <span class="otc-profit ${profit >= 0 ? 'pos' : 'neg'}">${profit >= 0 ? '+' : ''}${fmtUSD(profit)}</span>
-      </div>
-      <div class="otc-meta">
-        <span class="type-pill ${t.type.toLowerCase() === 'buy' ? 'buy' : 'sell'}">${t.type}</span>
-        <span class="otc-detail">${t.lots} lots</span>
-        <span class="otc-detail">@ ${t.openPrice}</span>
-        <span class="otc-detail">Now: ${t.currentPrice}</span>
-      </div>
-      <div class="otc-meta">
-        <span class="otc-detail">Opened: ${formatDate(t.openTime)}</span>
-        <span class="otc-detail">Swap: ${t.swap}</span>
-      </div>`;
+    card.innerHTML =
+      '<div class="otc-top">' +
+        '<span class="otc-pair">' + t.pair + '</span>' +
+        '<span class="otc-profit ' + (profit >= 0 ? 'pos' : 'neg') + '">' + fmtUSDSigned(profit) + '</span>' +
+      '</div>' +
+      '<div class="otc-meta">' +
+        '<span class="type-pill ' + (isBuy ? 'buy' : 'sell') + '">' + t.type + '</span>' +
+        '<span class="otc-detail">' + t.lots + ' lots</span>' +
+        '<span class="otc-detail">@ ' + t.openPrice + '</span>' +
+      '</div>' +
+      '<div class="otc-meta">' +
+        '<span class="otc-detail">Opened: ' + formatDate(t.openTime) + '</span>' +
+        '<span class="otc-detail">Swap: ' + (t.swap ?? 0) + '</span>' +
+        '<span class="otc-detail">Pips: ' + (t.pips ?? '—') + '</span>' +
+      '</div>';
     grid.appendChild(card);
   });
 }
 
+function calcGain(profit, deposits) {
+  if (!deposits || deposits === 0) return null;
+  return ((profit / deposits) * 100).toFixed(2);
+}
+
+function drawMiniChart(canvas, profit) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const isPos = profit >= 0;
+  const color = isPos ? '#22C55E' : '#EF4444';
+  const fill  = isPos ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
+
+  // Simple diagonal line chart
+  const points = isPos
+    ? [{x:0,y:h*0.8},{x:w*0.3,y:h*0.6},{x:w*0.6,y:h*0.35},{x:w,y:h*0.1}]
+    : [{x:0,y:h*0.2},{x:w*0.3,y:h*0.4},{x:w*0.6,y:h*0.65},{x:w,y:h*0.9}];
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Fill
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, h);
+  points.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  points.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Dot at end
+  const last = points[points.length - 1];
+  ctx.beginPath();
+  ctx.arc(last.x - 2, last.y, 3, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
 function renderTrades(trades) {
-  // Mobile cards
+  if (!trades || !trades.length) {
+    $('trade-cards-mobile').innerHTML = '<div class="no-open">No trade history yet.</div>';
+    $('trade-table-body').innerHTML = '<tr><td colspan="8" style="text-align:center;color:#5A6B7E;">No trade history yet.</td></tr>';
+    return;
+  }
+
   const mobile = $('trade-cards-mobile');
   mobile.innerHTML = '';
   trades.slice(0, 10).forEach(t => {
-    const profit = parseFloat(t.profit);
-    const dur = getDuration(t.openTime, t.closeTime);
+    const profit  = parseFloat(t.profit);
+    const pips    = parseFloat(t.pips ?? 0);
+    const isBuy   = String(t.type).toLowerCase() === 'buy' || t.type === '0';
+    const isPos   = profit >= 0;
+    const dur     = getDuration(t.openTime, t.closeTime);
+    const gainPct = profit >= 0 ? '+' + Math.abs(profit / 55).toFixed(2) + '%' : '-' + Math.abs(profit / 55).toFixed(2) + '%';
+
     const card = document.createElement('div');
     card.className = 'trade-card';
-    card.innerHTML = `
-      <div class="tc-top"><span class="tc-date">${formatDate(t.closeTime)}</span><span class="tc-pair">${t.pair}</span></div>
-      <div class="tc-result ${profit >= 0 ? 'pos' : 'neg'}">${profit >= 0 ? '+' : ''}${fmtUSD(profit)}</div>
-      <div class="tc-bottom">
-        <span class="type-pill ${t.type.toLowerCase() === 'buy' ? 'buy' : 'sell'}">${t.type}</span>
-        <span class="tc-dur">${dur}</span>
-      </div>
-      <div class="tc-pill-wrap"></div>`;
+    card.innerHTML =
+      '<div class="tc-header">' +
+        '<div class="tc-pair-wrap">' +
+          '<span class="tc-pair">' + t.pair + '</span>' +
+          '<span class="type-pill ' + (isBuy ? 'buy' : 'sell') + '">' + t.type + '</span>' +
+        '</div>' +
+        '<div class="tc-result ' + (isPos ? 'pos' : 'neg') + '">' + fmtUSDSigned(profit) + '</div>' +
+      '</div>' +
+
+      '<div class="tc-dates">' +
+        '<div class="tc-date-item"><span class="tc-date-label">Open</span><span class="tc-date-val">' + t.openTime + '</span></div>' +
+        '<div class="tc-date-item"><span class="tc-date-label">Close</span><span class="tc-date-val">' + t.closeTime + '</span></div>' +
+      '</div>' +
+
+      '<div class="tc-details">' +
+        '<div class="tc-detail-item"><span class="tc-dl">Lots</span><span class="tc-dv">' + t.lots + '</span></div>' +
+        '<div class="tc-detail-item"><span class="tc-dl">Open</span><span class="tc-dv">' + t.openPrice + '</span></div>' +
+        '<div class="tc-detail-item"><span class="tc-dl">Close</span><span class="tc-dv">' + t.closePrice + '</span></div>' +
+        '<div class="tc-detail-item"><span class="tc-dl">Pips</span><span class="tc-dv ' + (pips >= 0 ? 'pos' : 'neg') + '">' + (pips >= 0 ? '+' : '') + pips + '</span></div>' +
+        '<div class="tc-detail-item"><span class="tc-dl">Duration</span><span class="tc-dv">' + dur + '</span></div>' +
+        '<div class="tc-detail-item"><span class="tc-dl">Gain</span><span class="tc-dv ' + (isPos ? 'pos' : 'neg') + '">' + gainPct + '</span></div>' +
+      '</div>' +
+
+      '<canvas class="tc-chart" width="80" height="36" data-profit="' + profit + '"></canvas>';
+
     mobile.appendChild(card);
   });
 
-  // Desktop table
+  // Draw mini charts
+  document.querySelectorAll('.tc-chart').forEach(canvas => {
+    drawMiniChart(canvas, parseFloat(canvas.dataset.profit));
+  });
+
   const tbody = $('trade-table-body');
   tbody.innerHTML = '';
   trades.forEach(t => {
     const profit = parseFloat(t.profit);
-    const dur = getDuration(t.openTime, t.closeTime);
+    const pips   = parseFloat(t.pips ?? 0);
+    const isBuy  = String(t.type).toLowerCase() === 'buy' || t.type === '0';
+    const isPos  = profit >= 0;
+    const gainPct = (isPos ? '+' : '-') + Math.abs(profit / 55).toFixed(2) + '%';
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${formatDate(t.closeTime)}</td>
-      <td>${t.pair}</td>
-      <td><span class="type-pill ${t.type.toLowerCase() === 'buy' ? 'buy' : 'sell'}">${t.type}</span></td>
-      <td><span class="dur">${dur}</span></td>
-      <td>${t.pips}</td>
-      <td class="${profit >= 0 ? 'result-pos' : 'result-neg'}">${profit >= 0 ? '+' : ''}${fmtUSD(profit)}</td>`;
+    tr.innerHTML =
+      '<td>' + t.openTime + '</td>' +
+      '<td>' + t.closeTime + '</td>' +
+      '<td>' + t.pair + '</td>' +
+      '<td><span class="type-pill ' + (isBuy ? 'buy' : 'sell') + '">' + t.type + '</span></td>' +
+      '<td>' + t.lots + '</td>' +
+      '<td class="' + (pips >= 0 ? 'result-pos' : 'result-neg') + '">' + (pips >= 0 ? '+' : '') + pips + '</td>' +
+      '<td>' + t.openPrice + ' → ' + t.closePrice + '</td>' +
+      '<td class="' + (isPos ? 'result-pos' : 'result-neg') + '">' + fmtUSDSigned(profit) + '</td>' +
+      '<td class="' + (isPos ? 'result-pos' : 'result-neg') + '">' + gainPct + '</td>' +
+      '<td>' + getDuration(t.openTime, t.closeTime) + '</td>';
     tbody.appendChild(tr);
   });
 }
@@ -193,7 +320,6 @@ function renderLastUpdated(iso) {
 // ── Main data loader ──────────────────────────────────────────────────────────
 async function loadData() {
   $('error-banner').style.display = 'none';
-
   try {
     const res  = await fetch(API_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -201,22 +327,19 @@ async function loadData() {
     if (data.error) throw new Error(data.message);
 
     renderKPIs(data.account);
-    if (data.equityCurve.length) renderEquityChart(data.equityCurve);
+    if (data.equityCurve && data.equityCurve.length) renderEquityChart(data.equityCurve);
     renderMonthly(data.monthly);
-    renderOpenTrades(data.openTrades);
-    renderTrades(data.trades);
+    renderOpenTrades(data.openTrades || []);
+    renderTrades(data.trades || []);
     renderLastUpdated(data.updatedAt);
 
   } catch (err) {
     console.error('Load error:', err);
     $('error-banner').style.display = 'block';
   } finally {
-    // Hide loading overlay
     const overlay = $('loading-overlay');
     overlay.classList.add('hidden');
     setTimeout(() => overlay.style.display = 'none', 700);
-
-    // Trigger reveal animations
     document.querySelectorAll('.reveal').forEach(el => {
       setTimeout(() => el.classList.add('visible'), 100);
     });
@@ -236,4 +359,5 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadData();
-setInterval(loadData, AUTO_REFRESH_MS); // auto-refresh every 5 minutes
+setInterval(loadData, AUTO_REFRESH_MS);
+                 
