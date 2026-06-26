@@ -280,11 +280,11 @@ function renderTrades(trades) {
         '<div class="tc-detail-item"><span class="tc-dl">Open</span><span class="tc-dv">' + t.openPrice + '</span></div>' +
         '<div class="tc-detail-item"><span class="tc-dl">Close</span><span class="tc-dv">' + t.closePrice + '</span></div>' +
         '<div class="tc-detail-item"><span class="tc-dl">Pips</span><span class="tc-dv ' + (pips >= 0 ? 'pos' : 'neg') + '">' + (pips >= 0 ? '+' : '') + pips + '</span></div>' +
+        '<div class="tc-detail-item"><span class="tc-dl">Duration</span><span class="tc-dv">' + getDuration(t.openTime, t.closeTime) + '</span></div>' +
         '<div class="tc-detail-item"><span class="tc-dl">Gain</span><span class="tc-dv ' + (isPos ? 'pos' : 'neg') + '">' + gainPct + '</span></div>' +
       '</div>' +
 
       '<div class="tc-bottom-row">' +
-        '<span class="tc-dur-tag">' + getDuration(t.openTime, t.closeTime) + '</span>' +
         '<canvas class="tc-chart" width="72" height="32" data-profit="' + profit + '"></canvas>' +
       '</div>';
 
@@ -371,4 +371,4 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadData();
 setInterval(loadData, AUTO_REFRESH_MS);
-  
+      
