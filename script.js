@@ -202,43 +202,72 @@ function calcGain(profit, deposits) {
   return ((profit / deposits) * 100).toFixed(2);
 }
 
-function drawMiniChart(canvas, profit) {
+function drawMiniChart(canvas, profit, pips) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
   const isPos = profit >= 0;
-  const color = isPos ? '#22C55E' : '#EF4444';
-  const fill  = isPos ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
 
-  // Simple diagonal line chart
-  const points = isPos
-    ? [{x:0,y:h*0.8},{x:w*0.3,y:h*0.6},{x:w*0.6,y:h*0.35},{x:w,y:h*0.1}]
-    : [{x:0,y:h*0.2},{x:w*0.3,y:h*0.4},{x:w*0.6,y:h*0.65},{x:w,y:h*0.9}];
+  // Warna kayak Myfxbook: biru untuk profit, pink/merah untuk loss
+  const color    = isPos ? '#6B8CFF' : '#FF6B8C';
+  const colorEnd = isPos ? '#4A6FE8' : '#E84A6F';
+  const fillTop  = isPos ? 'rgba(107,140,255,0.25)' : 'rgba(255,107,140,0.25)';
+  const fillBot  = isPos ? 'rgba(107,140,255,0.02)' : 'rgba(255,107,140,0.02)';
+
+  // Generate natural-looking points dengan sedikit noise
+  const numPoints = 8;
+  const points = [];
+  for (let i = 0; i < numPoints; i++) {
+    const t = i / (numPoints - 1);
+    // Trend utama + noise kecil
+    const trend = isPos ? (1 - t) * 0.75 + t * 0.1 : (1 - t) * 0.2 + t * 0.85;
+    const noises = [0, 0.08, -0.06, 0.1, -0.04, 0.07, -0.05, 0];
+    const y = Math.max(0.05, Math.min(0.95, trend + noises[i])) * h;
+    points.push({ x: (t * w), y });
+  }
 
   ctx.clearRect(0, 0, w, h);
 
-  // Fill
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, fillTop);
+  grad.addColorStop(1, fillBot);
+
   ctx.beginPath();
   ctx.moveTo(points[0].x, h);
-  points.forEach(p => ctx.lineTo(p.x, p.y));
-  ctx.lineTo(w, h);
+  ctx.lineTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const cp = { x: (points[i-1].x + points[i].x) / 2, y: (points[i-1].y + points[i].y) / 2 };
+    ctx.quadraticCurveTo(points[i-1].x, points[i-1].y, cp.x, cp.y);
+  }
+  ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
+  ctx.lineTo(points[points.length-1].x, h);
   ctx.closePath();
-  ctx.fillStyle = fill;
+  ctx.fillStyle = grad;
   ctx.fill();
 
-  // Line
+  // Line gradient
+  const lineGrad = ctx.createLinearGradient(0, 0, w, 0);
+  lineGrad.addColorStop(0, color);
+  lineGrad.addColorStop(1, colorEnd);
+
   ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);
-  points.forEach(p => ctx.lineTo(p.x, p.y));
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
+  for (let i = 1; i < points.length; i++) {
+    const cp = { x: (points[i-1].x + points[i].x) / 2, y: (points[i-1].y + points[i].y) / 2 };
+    ctx.quadraticCurveTo(points[i-1].x, points[i-1].y, cp.x, cp.y);
+  }
+  ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Dot at end
+  // Dot merah/hijau di akhir
   const last = points[points.length - 1];
+  const dotColor = isPos ? '#22C55E' : '#EF4444';
   ctx.beginPath();
-  ctx.arc(last.x - 2, last.y, 3, 0, Math.PI * 2);
-  ctx.fillStyle = color;
+  ctx.arc(last.x - 1, last.y, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = dotColor;
   ctx.fill();
 }
 
@@ -285,7 +314,7 @@ function renderTrades(trades) {
       '</div>' +
 
       '<div class="tc-bottom-row">' +
-        '<canvas class="tc-chart" width="72" height="32" data-profit="' + profit + '"></canvas>' +
+        '<canvas class="tc-chart" width="100" height="44" data-profit="' + profit + '"></canvas>' +
       '</div>';
 
     mobile.appendChild(card);
@@ -293,7 +322,7 @@ function renderTrades(trades) {
 
   // Draw mini charts
   document.querySelectorAll('.tc-chart').forEach(canvas => {
-    drawMiniChart(canvas, parseFloat(canvas.dataset.profit));
+    drawMiniChart(canvas, parseFloat(canvas.dataset.profit), 0);
   });
 
   const tbody = $('trade-table-body');
@@ -371,4 +400,4 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadData();
 setInterval(loadData, AUTO_REFRESH_MS);
-      
+    
