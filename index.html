@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="IndraFXid — Professional Forex trading performance journal. Live account stats, equity curve, and trade history powered by Myfxbook.">
+<meta property="og:title" content="IndraFXid | Performance Trading">
+<meta property="og:description" content="Live Forex trading performance journal by IndraFXid — intraday & swing trading with disciplined risk management.">
 <title>IndraFXid | Performance Trading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- Loading Overlay -->
-<div id="loading-overlay">
+<div id="loading-overlay" role="status" aria-label="Loading live data">
   <div class="loader-logo">IndraFXid</div>
   <div class="loader-bar"><div class="loader-bar-fill"></div></div>
   <div class="loader-text">Loading live data…</div>
@@ -26,18 +30,38 @@
       <div class="logo-sub">Professional Trading Portfolio · 2026</div>
     </div>
     <div class="header-right">
-      <nav class="top-nav">
+      <nav class="top-nav" aria-label="Page sections">
         <a href="#performance">Performance</a>
         <a href="#open-trades">Open Trades</a>
         <a href="#trades">History</a>
         <a href="#deposits">Deposits</a>
       </nav>
-      <div class="badge">Live Account</div>
+      <!-- Badge: dinamis via JS, default hidden sampai data masuk -->
+      <div class="badge" id="account-badge">
+        <span id="badge-dot" class="badge-dot"></span>
+        <span id="badge-label">Live Account</span>
+      </div>
     </div>
   </header>
 
+  <!-- Forex Ticker TradingView -->
+  <div class="ticker-wrap">
+    <div class="ticker-header">
+      <span class="ticker-title">Live Market Prices</span>
+      <span class="ticker-dot"></span>
+      <span class="ticker-live">Real-time</span>
+    </div>
+    <script type="module" src="https://widgets.tradingview-widget.com/w/en/tv-single-ticker.js"></script>
+    <div class="ticker-row">
+      <tv-single-ticker symbol="OANDA:EURUSD" theme="dark"></tv-single-ticker>
+    </div>
+  </div>
+
   <!-- Error Banner -->
-  <div id="error-banner">⚠ Could not load live data. Showing cached or placeholder values. <button class="refresh-btn" onclick="loadData()">Retry</button></div>
+  <div id="error-banner" role="alert" aria-live="polite">
+    ⚠ Could not load live data. Showing cached or placeholder values.
+    <button class="refresh-btn" onclick="loadData()">Retry</button>
+  </div>
 
   <!-- Hero -->
   <section class="hero reveal">
@@ -54,8 +78,8 @@
         <div class="hs-value" id="hero-gain">—</div>
       </div>
       <div class="hero-stat">
-        <div class="hs-label">Trades</div>
-        <div class="hs-value" id="hero-trades">—</div>
+        <div class="hs-label">Drawdown</div>
+        <div class="hs-value" id="hero-drawdown">—</div>
       </div>
     </div>
   </section>
@@ -71,7 +95,7 @@
     </div>
     <div class="kpi">
       <div class="kpi-label">Total Gain</div>
-      <div class="kpi-value green" id="kpi-gain">—</div>
+      <div class="kpi-value" id="kpi-gain">—</div>
       <div class="kpi-sub" id="kpi-gain-sub">Since deposit</div>
     </div>
     <div class="kpi">
@@ -103,7 +127,7 @@
       <span class="sec-tag" id="equity-tag">Live Data</span>
     </div>
     <div class="chartbox">
-      <canvas id="equityChart" height="90"></canvas>
+      <canvas id="equityChart" height="90" role="img" aria-label="Equity curve chart"></canvas>
     </div>
   </section>
 
@@ -113,7 +137,7 @@
       <h2>Monthly Returns</h2>
       <span class="sec-tag">2026</span>
     </div>
-    <div class="heat-grid" id="monthly-grid">
+    <div class="heat-grid" id="monthly-grid" role="list">
       <!-- Filled by JS -->
     </div>
   </section>
@@ -174,7 +198,7 @@
       </div>
       <div class="kpi">
         <div class="kpi-label">Net Profit</div>
-        <div class="kpi-value green" id="dw-netprofit">—</div>
+        <div class="kpi-value" id="dw-netprofit">—</div>
         <div class="kpi-sub">After Withdrawals</div>
       </div>
       <div class="kpi">
@@ -195,9 +219,18 @@
       <!-- Mobile cards -->
       <div class="trade-cards" id="trade-cards-mobile"></div>
       <!-- Desktop table -->
-      <table class="trade-table-desktop">
+      <table class="trade-table-desktop" aria-label="Recent trades">
         <thead><tr>
-          <th>Date</th><th>Pair</th><th>Direction</th><th>Lots</th><th>Pips</th><th>Result</th>
+          <th scope="col">Open Date</th>
+          <th scope="col">Close Date</th>
+          <th scope="col">Pair</th>
+          <th scope="col">Action</th>
+          <th scope="col">Lots</th>
+          <th scope="col">Pips</th>
+          <th scope="col">Price</th>
+          <th scope="col">Profit</th>
+          <th scope="col">Gain</th>
+          <th scope="col">Duration</th>
         </tr></thead>
         <tbody id="trade-table-body"></tbody>
       </table>
@@ -218,6 +251,9 @@
 
 </div>
 
+<!-- chart.js harus load duluan sebelum script.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="script.js"></script>
 </body>
-</html>
+  </html>
+  
