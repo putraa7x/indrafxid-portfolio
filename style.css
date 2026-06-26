@@ -489,12 +489,24 @@ header {
 .tc-dv.pos { color: var(--green-light); }
 .tc-dv.neg { color: var(--red-light); }
 
-/* Mini chart */
+/* Bottom row: duration + chart */
+.tc-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+.tc-dur-tag {
+  font-size: 11px;
+  color: var(--gold-dim);
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.15);
+  padding: 3px 12px;
+  border-radius: 100px;
+}
 .tc-chart {
-  position: absolute;
-  right: 18px;
-  bottom: 16px;
   border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .tc-dur { font-size: 11px; color: var(--gold-dim); background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.15); padding: 2px 10px; border-radius: 100px; }
@@ -609,5 +621,5 @@ footer {
   .reveal { opacity: 1 !important; transform: none !important; }
   .gold-line { background: #8a6a20; }
   footer { margin-top: 32px; }
-  }
+                         }
   
