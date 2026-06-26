@@ -47,14 +47,23 @@ function formatDate(str) {
 
 function getDuration(open, close) {
   if (!open || !close) return '—';
-  const parseD = s => {
-    const [datePart] = s.split(' ');
+  const parseMyDateTime = s => {
+    const [datePart, timePart] = s.split(' ');
     const [mm, dd, yyyy] = datePart.split('/');
-    return new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+    const [hh, min] = (timePart || '00:00').split(':');
+    return new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd), parseInt(hh), parseInt(min));
   };
-  const days = Math.floor((parseD(close) - parseD(open)) / 86400000);
-  if (days === 0) return '1D';
-  return days + 'D';
+  const diff = parseMyDateTime(close) - parseMyDateTime(open);
+  const totalMins = Math.floor(diff / 60000);
+  const days  = Math.floor(totalMins / 1440);
+  const hours = Math.floor((totalMins % 1440) / 60);
+  const mins  = totalMins % 60;
+  if (days >= 1) {
+    if (hours === 0) return days + 'd';
+    return days + 'd ' + hours + 'h';
+  }
+  if (hours >= 1) return hours + 'h ' + mins + 'm';
+  return mins + 'm';
 }
 
 // ── Render functions ──────────────────────────────────────────────────────────
@@ -271,11 +280,13 @@ function renderTrades(trades) {
         '<div class="tc-detail-item"><span class="tc-dl">Open</span><span class="tc-dv">' + t.openPrice + '</span></div>' +
         '<div class="tc-detail-item"><span class="tc-dl">Close</span><span class="tc-dv">' + t.closePrice + '</span></div>' +
         '<div class="tc-detail-item"><span class="tc-dl">Pips</span><span class="tc-dv ' + (pips >= 0 ? 'pos' : 'neg') + '">' + (pips >= 0 ? '+' : '') + pips + '</span></div>' +
-        '<div class="tc-detail-item"><span class="tc-dl">Duration</span><span class="tc-dv">' + dur + '</span></div>' +
         '<div class="tc-detail-item"><span class="tc-dl">Gain</span><span class="tc-dv ' + (isPos ? 'pos' : 'neg') + '">' + gainPct + '</span></div>' +
       '</div>' +
 
-      '<canvas class="tc-chart" width="80" height="36" data-profit="' + profit + '"></canvas>';
+      '<div class="tc-bottom-row">' +
+        '<span class="tc-dur-tag">' + getDuration(t.openTime, t.closeTime) + '</span>' +
+        '<canvas class="tc-chart" width="72" height="32" data-profit="' + profit + '"></canvas>' +
+      '</div>';
 
     mobile.appendChild(card);
   });
@@ -360,4 +371,4 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadData();
 setInterval(loadData, AUTO_REFRESH_MS);
-                 
+  
