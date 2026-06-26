@@ -314,7 +314,7 @@ function renderTrades(trades) {
       '</div>' +
 
       '<div class="tc-bottom-row">' +
-        '<canvas class="tc-chart" width="100" height="44" data-profit="' + profit + '"></canvas>' +
+        '<canvas class="tc-chart" data-profit="' + profit + '"></canvas>' +
       '</div>';
 
     mobile.appendChild(card);
